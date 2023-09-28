@@ -1,0 +1,75 @@
+function comp = RunMasterTSPipeline()
+    clear all
+    basedir = fullfile(cd,'..');
+    TSdir1= fullfile(basedir,'TimeMats','G1');
+    TSdir2= fullfile(basedir,'TimeMats','G2');
+    load('ROI_TransformMatrix419.mat', 'Transform_matBEN');
+    g1= split(TSdir1,'\');
+    g12=split(g1{end},'-');
+    g13=[g12{1:end}];
+    g2= split(TSdir2,'\');
+    g22=split(g2{end},'-');
+    g23=[g22{1:end}];
+    groupname = {[g13 'vs' g23]};
+    groupname = groupname{1};
+    if ~exist(fullfile(basedir,'BEN'),'dir')
+        mkdir(fullfile(basedir,'BEN'))
+        mkdir(fullfile(basedir,'BEN',groupname))
+        mkdir(fullfile(basedir,'BEN',groupname,'BENoutputs'))
+        mkdir(fullfile(basedir,'BEN',groupname,'braindats'))
+        mkdir(fullfile(basedir,'BEN',groupname,'Correlations'))
+        mkdir(fullfile(basedir,'BEN',groupname,'SENdats'))
+    end
+    importstatus=ImportTS(basedir,g13);
+    if importstatus == 1
+        disp('Time Series Imported')
+    else
+        disp('Error')
+        return
+    end
+    importstatus=ImportTS(basedir,g23);
+    if importstatus == 1
+        disp('Time Series Imported')
+    else
+        disp('Error')
+        return
+    end
+    SampEnCalc;
+    SampEncompare;
+    SampEnCondchange;
+
+
+%% Internal Functions
+%Calc Sample Entropy using BENtbx
+function SampEnCalc
+SampEn=RunEntropyROI(basedir,groupname,TSdir1,TSdir2,Transform_matBEN);
+end
+
+% Calc Sample Entropy ttest results
+function SampEncompare
+    SampEntest = BEN_ttest(basedir,groupname);
+    if SampEntest == 0
+        disp('No Sample Entropy Changes')
+    elseif SampEntest == 1
+        disp('Significant Corrected SampEn Result Found')
+    elseif SampEntest == 2
+        disp('Significant Uncorrected SampEn Result Found')
+    end
+end
+function SampEnCondchange
+    SampCondchange = BENchange_calc(basedir,groupname);
+
+end
+function SampEnvsYrsSmoke
+    SampEnyrssmoke = BENvsYrsSmoke(basedir,groupname,Transform_matBEN);
+    if SampEnyrssmoke == 1
+        disp('Samp En/Yrs Smoked correlations complete')
+    end
+end
+function SampEnvsBehave
+    SampEnbehave = BENvsBehavior(basedir,groupname,Transform_matBEN);
+    if SampEnbehave == 1
+        disp('Samp En/Behave correlations complete')
+    end
+end
+end
